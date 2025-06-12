@@ -1,6 +1,7 @@
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 
 class Metrics:
     def __init__(self):
@@ -46,6 +47,115 @@ class Metrics:
             print("="*40)
             for metric, value in metrics.items():
                 print(f"\n{metric}: {value:.2f}%")
+                
+def plot_confusion_matrix(self, y_true, y_pred, method_name, ax=None, class_labels=None, cmap='Blues'):
+    """
+    Computes and plots a confusion matrix for a given set of predictions.
+
+    Args:
+        y_true: Array-like of true target values.
+        y_pred: Array-like of predicted target values.
+        method_name (str): Name of the method/model for labeling.
+        ax (matplotlib.axes, optional): Matplotlib axes to plot on. If None, a new figure is created.
+        class_labels (list, optional): Labels for the classes in the confusion matrix.
+                                      Defaults to ['Class 0', 'Class 1'] for binary classification.
+        cmap (str): Colormap for the heatmap. Defaults to 'Blues'.
+        
+    Returns:
+        matplotlib.axes: The axes with the plotted confusion matrix.
+        numpy.ndarray: The confusion matrix.
+    """
+    import seaborn as sns
+    from sklearn.metrics import confusion_matrix
+    
+    # Compute confusion matrix
+    conf_mat = confusion_matrix(y_true, y_pred)
+    
+    # Set default class labels for binary classification if not provided
+    if class_labels is None:
+        if set(np.unique(y_true)) == {0, 1}:
+            class_labels = ['Dismissal (0)', 'Approval (1)']
+        else:
+            class_labels = [f'Class {i}' for i in range(len(np.unique(y_true)))]
+    
+    # Create figure if no axes is provided
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 6))
+    
+    # Plot confusion matrix
+    sns.heatmap(conf_mat, annot=True, fmt='d', cmap=cmap,
+                xticklabels=class_labels,
+                yticklabels=class_labels,
+                ax=ax)
+    
+    # Set labels and title
+    ax.set_title(f'Confusion Matrix - {method_name}')
+    ax.set_xlabel('Predicted')
+    ax.set_ylabel('True')
+    
+    # Store the confusion matrix in results if needed
+    if method_name not in self.results:
+        self.results[method_name] = {}
+    self.results[method_name]['confusion_matrix'] = conf_mat
+    
+    return ax, conf_mat
+
+def plot_all_confusion_matrices(self, splits=None, figsize=(18, 6)):
+    """
+    Plots confusion matrices for all methods or specific splits.
+    
+    Args:
+        splits (list, optional): List of split names to filter (e.g., ['train', 'validation', 'test']).
+                                 If None, plots all stored confusion matrices.
+        figsize (tuple): Figure size as (width, height).
+        
+    Returns:
+        matplotlib.figure.Figure: The generated figure with confusion matrices.
+    """
+    # Filter methods based on splits if provided
+    methods_to_plot = []
+    if splits:
+        for method in self.results.keys():
+            for split in splits:
+                if split in method and 'confusion_matrix' in self.results[method]:
+                    methods_to_plot.append(method)
+    else:
+        methods_to_plot = [m for m in self.results.keys() if 'confusion_matrix' in self.results[m]]
+    
+    if not methods_to_plot:
+        print("No confusion matrices to plot.")
+        return None
+    
+    # Create figure with subplots
+    n_plots = len(methods_to_plot)
+    fig, axes = plt.subplots(1, n_plots, figsize=figsize)
+    
+    # Handle the case of a single subplot
+    if n_plots == 1:
+        axes = [axes]
+    
+    # Plot each confusion matrix
+    for i, method in enumerate(methods_to_plot):
+        conf_mat = self.results[method]['confusion_matrix']
+        
+        # For binary classification, use default labels
+        if conf_mat.shape == (2, 2):
+            class_labels = ['Dismissal (0)', 'Approval (1)']
+        else:
+            class_labels = [f'Class {j}' for j in range(conf_mat.shape[0])]
+        
+        ax = axes[i]
+        sns.heatmap(conf_mat, annot=True, fmt='d', cmap='Blues',
+                    xticklabels=class_labels,
+                    yticklabels=class_labels,
+                    ax=ax)
+        
+        ax.set_title(f'{method}')
+        ax.set_xlabel('Predicted')
+        ax.set_ylabel('True')
+    
+    plt.tight_layout()
+    return fig
 
     def plot(self):
         """
