@@ -8,7 +8,7 @@ class Metrics:
         """Initializes the Metrics class with an empty dictionary to store results."""
         self.results = {}
 
-    def run(self, y_true, y_pred, method_name, average='macro'):
+    def run(self, y_true, y_pred, method_name, average='binary'):
         """
         Computes and stores evaluation metrics for a given set of predictions.
 
@@ -16,8 +16,8 @@ class Metrics:
             y_true: Array-like of true target values.
             y_pred: Array-like of predicted target values.
             method_name (str): Name of the method/model being evaluated.
-            average (str): Averaging method for multi-class metrics ('macro', 'micro', 'weighted').
-                           Defaults to 'macro'.
+            average (str): Averaging method for multi-class metrics ('binary', 'micro', 'weighted').
+                           Defaults to 'binary'.
         """
         accuracy = accuracy_score(y_true, y_pred) * 100
         # Use zero_division=0 to avoid warnings when a class has no predictions
@@ -46,8 +46,12 @@ class Metrics:
             print(f"Metrics for {method}")
             print("="*40)
             for metric, value in metrics.items():
-                print(f"\n{metric}: {value:.2f}%")
+                # Skip confusion matrices and other non-scalar values
+                if metric == 'confusion_matrix' or hasattr(value, 'shape') and len(value.shape) > 0:
+                    continue
                 
+                print(f"\n{metric}: {value:.2f}%")
+                    
     def plot_confusion_matrix(self, y_true, y_pred, method_name, ax=None, class_labels=None, cmap='Blues'):
         """
         Computes and plots a confusion matrix for a given set of predictions.
@@ -90,11 +94,6 @@ class Metrics:
         ax.set_title(f'Confusion Matrix - {method_name}')
         ax.set_xlabel('Predicted')
         ax.set_ylabel('True')
-        
-        # Store the confusion matrix in results if needed
-        if method_name not in self.results:
-            self.results[method_name] = {}
-        self.results[method_name]['confusion_matrix'] = conf_mat
         
         return ax, conf_mat
 
@@ -167,13 +166,13 @@ class Metrics:
         methods = list(self.results.keys())
         metric_names = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
 
-        fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+        fig, axes = plt.subplots(2, 2, figsize=(10, 8))
         axes = axes.flatten()  # Flatten the 2x2 grid into a 1D array
 
         for i, metric_name in enumerate(metric_names):
             scores = [self.results[method][metric_name] for method in methods]
 
-            bars = axes[i].bar(methods, scores, color=plt.cm.viridis(np.linspace(0, 1, len(methods))))
+            bars = axes[i].bar(methods, scores, color=plt.cm.Blues(np.linspace(0, 1, len(methods))))
             axes[i].set_title(metric_name)
             axes[i].set_ylabel("Score (%)")
             axes[i].set_ylim(0, 105) # Set ylim to give space for annotations
@@ -183,7 +182,7 @@ class Metrics:
             for bar in bars:
                 yval = bar.get_height()
                 axes[i].text(bar.get_x() + bar.get_width()/2.0, yval + 1, f'{yval:.2f}',
-                             va='bottom', ha='center') # Adjust position slightly above bar
+                                va='bottom', ha='center') # Adjust position slightly above bar
 
         plt.suptitle("Model Performance Comparison", fontsize=16)
         plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust layout to prevent title overlap
