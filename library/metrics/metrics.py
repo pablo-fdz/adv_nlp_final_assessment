@@ -52,7 +52,7 @@ class Metrics:
                 
                 print(f"\n{metric}: {value:.2f}%")
                     
-    def plot_confusion_matrix(self, y_true, y_pred, method_name, ax=None, class_labels=None, cmap='Blues'):
+    def plot_confusion_matrix(self, y_true, y_pred, method_name, ax=None, class_labels=None, cmap='viridis'):
         """
         Computes and plots a confusion matrix for a given set of predictions.
 
@@ -172,7 +172,7 @@ class Metrics:
         for i, metric_name in enumerate(metric_names):
             scores = [self.results[method][metric_name] for method in methods]
 
-            bars = axes[i].bar(methods, scores, color=plt.cm.Blues(np.linspace(0, 1, len(methods))))
+            bars = axes[i].bar(methods, scores, color=plt.cm.viridis(np.linspace(0, 1, len(methods))))
             axes[i].set_title(metric_name)
             axes[i].set_ylabel("Score (%)")
             axes[i].set_ylim(0, 105) # Set ylim to give space for annotations
