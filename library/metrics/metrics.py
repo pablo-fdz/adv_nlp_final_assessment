@@ -65,7 +65,7 @@ class Metrics:
         for i, metric_name in enumerate(metric_names):
             scores = [self.results[method][metric_name] for method in methods]
 
-            bars = axes[i].bar(methods, scores, color=plt.cm.viridis(np.linspace(0, 1, len(methods))))
+            bars = axes[i].bar(methods, scores, color=plt.cm.paired(np.linspace(0, 1, len(methods))))  # Check out color map options here: https://matplotlib.org/stable/users/explain/colors/colormaps.html#classes-of-colormaps
             axes[i].set_title(metric_name)
             axes[i].set_ylabel("Score (%)")
             axes[i].set_ylim(0, 105) # Set ylim to give space for annotations
