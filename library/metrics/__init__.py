@@ -1,1 +1,2 @@
 from .metrics import Metrics
+from .evaluate_classification import evaluate_classification
