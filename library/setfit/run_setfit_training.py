@@ -6,13 +6,15 @@ from ..utilities import sample_balanced_dataset
 from ..data_augmentation import augment_dataset
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 import torch
+from datetime import datetime
 
 # Function to run SetFit training and evaluation routine
 def run_setfit_training(train_df: pl.DataFrame, val_df: pl.DataFrame, 
                         model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
                         num_epochs=5, batch_size=16, learning_rate=2e-5, sample_size=32,
                         metric='f1', num_iterations=10, seed=42, sample_proportion=0.5,
-                        augmentation_rate:float=None, augmentation_techniques:list=None):
+                        augmentation_rate:float=None, augmentation_techniques:list=None,
+                        output_path:str=os.path.join('part_2', 'a'), custom_model_name_suffix:str=None):
     """
     Run SetFit training and evaluation routine.
     
@@ -36,6 +38,8 @@ def run_setfit_training(train_df: pl.DataFrame, val_df: pl.DataFrame,
             examples in the training set will be 100 + (0.2 * 100 * 2) = 140.
         augmentation_techniques (list): List of initialized augmentation objects 
             to apply to the training data (like RandomDeletion, RandomInsertion, etc.).
+        output_path (str): Intermediate path to save the results and model. Defaults to 'part_2/a'.
+        custom_model_name_suffix (str): Custom suffix for the model name to avoid overwriting.
     
     Returns:
         list: A list of dictionaries containing evaluation metrics for each iteration.
@@ -129,7 +133,21 @@ def run_setfit_training(train_df: pl.DataFrame, val_df: pl.DataFrame,
     
     # Save the best model
     san_model_name = model_name.split(sep='/')[-1]  # Sanitize model name for file path, keep only the last part
-    model_path = os.path.join('models', 'part_2', 'a', f'setfit_best_{san_model_name}')
+    if custom_model_name_suffix:
+        final_folder_name = f'setfit_best_{san_model_name}_{custom_model_name_suffix}'
+    else:
+        final_folder_name = f'setfit_best_{san_model_name}'
+    model_path = os.path.join('models', output_path, final_folder_name)
+
+    timestamp_overwrite = datetime.now().strftime("%Y%m%d_%H%M%S")  # Timestamp for overwriting existing models
+
+    # Check if model path exists and, if so, change naming to avoid overwriting
+    if os.path.exists(model_path):
+        timestamp = timestamp_overwrite
+        final_folder_name = f'{final_folder_name}_{timestamp}'
+        model_path = os.path.join('models', output_path, final_folder_name)
+        print(f'Model path already exists. Using timestamp suffix: {final_folder_name}')
+
     os.makedirs(model_path, exist_ok=True)
     best_model.save_pretrained(model_path)  # Save the best model to the specified path
     print(f'Best model saved to: {model_path}')
@@ -139,7 +157,21 @@ def run_setfit_training(train_df: pl.DataFrame, val_df: pl.DataFrame,
     results_df = results_df.with_columns(pl.Series("iteration", range(1, len(results_df) + 1)))  # Add iteration number to the results DataFrame
 
     # Save the results DataFrame to a Parquet file
-    results_path = os.path.join('results', 'part_2', 'a', f'setfit_results_{san_model_name}.parquet')
+    if custom_model_name_suffix:
+        parquet_name = f'setfit_results_{san_model_name}_{custom_model_name_suffix}.parquet'
+    else:
+        parquet_name = f'setfit_results_{san_model_name}.parquet'
+
+    results_path = os.path.join('results', output_path, parquet_name)
+
+    # Check if results file exists and, if so, change naming to avoid overwriting
+    if os.path.exists(results_path):
+        timestamp = timestamp_overwrite
+        base_name = parquet_name.replace('.parquet', '')
+        parquet_name = f'{base_name}_{timestamp}.parquet'
+        results_path = os.path.join('results', output_path, parquet_name)
+        print(f'Results file already exists. Using timestamp suffix: {parquet_name}')
+
     os.makedirs(os.path.dirname(results_path), exist_ok=True)  # Ensure the directory exists
     results_df.write_parquet(results_path)
     print(f'Results saved to: {results_path}')
