@@ -10,7 +10,8 @@ import torch
 def run_setfit_training(train_df: pl.DataFrame, val_df: pl.DataFrame, 
                         model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
                         num_epochs=5, batch_size=16, learning_rate=2e-5, sample_size=32,
-                        metric='f1', num_iterations=10, seed=42):
+                        metric='f1', num_iterations=10, seed=42, sample_proportion=0.5,
+                        augmentation_rate:float=None, augmentation_techniques:list=None):
     """
     Run SetFit training and evaluation routine.
     
@@ -25,6 +26,11 @@ def run_setfit_training(train_df: pl.DataFrame, val_df: pl.DataFrame,
         metric (str): Metric to optimize during training ('f1', 'accuracy', etc.).
         num_iterations (int): Number of iterations to run the training process.
         seed (int): Random seed for reproducibility.
+        sample_proportion (float): Proportion of positive samples to include in the balanced dataset.
+        augmentation_rate (float): Rate of augmentation to apply to the training data.
+            For example, if set to 0.5, each of the augmentation techniques will be 
+            applied to 50% of the original training data.
+        augmentation_techniques (list): List of augmentation techniques to apply to the training data.
     
     Returns:
         list: A list of dictionaries containing evaluation metrics for each iteration.
@@ -47,7 +53,9 @@ def run_setfit_training(train_df: pl.DataFrame, val_df: pl.DataFrame,
         model = setfit.SetFitModel.from_pretrained(model_name)
 
         # Sample balanced training data
-        train_samples = sample_balanced_dataset(train_df, sample_size, seed + iteration)
+        train_samples = sample_balanced_dataset(train_df, sample_size, seed + iteration, sample_proportion)
+
+        # if augmentation_rate is not None and augmentation_techniques is not None:
 
         # Create the training arguments
         train_args = setfit.TrainingArguments(

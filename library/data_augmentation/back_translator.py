@@ -1,7 +1,17 @@
 from transformers import MarianMTModel, MarianTokenizer
 
 class BackTranslator:
-    def __init__(self):
+    def __init__(self, max_length=256):
+
+        """
+        Initializes the BackTranslator with specified maximum length for translation chunks.
+        
+        Args:
+            max_length (int): Maximum length of text chunks for translation. Default is 256.
+        """
+
+        self.max_length = max_length
+
         # Load FR->EN model
         self.fr_en_model_name = "Helsinki-NLP/opus-mt-fr-en"
         self.fr_en_tokenizer = MarianTokenizer.from_pretrained(self.fr_en_model_name)
@@ -12,33 +22,29 @@ class BackTranslator:
         self.en_fr_tokenizer = MarianTokenizer.from_pretrained(self.en_fr_model_name)
         self.en_fr_model = MarianMTModel.from_pretrained(self.en_fr_model_name)
     
-    def back_translate(self, french_text, max_length=256):
-        """Perform FR->EN->FR back-translation with chunking."""
+    def run(self, french_text):
+        """
+        Perform FR->EN->FR back-translation with chunking.
+
+        Args:
+            french_text (str): The French text to be back-translated.
+        """
         try:
             # Check if text is too short to need chunking
             fr_token_count = len(self.fr_en_tokenizer.encode(french_text))
             
-            if fr_token_count <= max_length:
+            if fr_token_count <= self.max_length:
                 # Use simple translation for short texts
-                return self._simple_translate(french_text, max_length)
+                return self._simple_translate(french_text, self.max_length)
             else:
                 # Use chunking for long texts
-                return self._chunked_translate(french_text, max_length)
+                return self._chunked_translate(french_text, self.max_length)
                 
         except Exception as e:
             print(f"Back-translation failed: {e}")
             return french_text  # Return original text if everything fails
-    
-    def back_translate_batch(self, french_texts, max_length=400):
-        """Back-translate a batch of texts."""
-        results = []
-        for i, text in enumerate(french_texts):
-            print(f"Processing text {i+1}/{len(french_texts)}")
-            result = self.back_translate(text, max_length)
-            results.append(result)
-        return results
 
-    def _split_text_into_chunks(self, text, tokenizer, max_length=400):
+    def _split_text_into_chunks(self, text, tokenizer, max_length=256):
         """Split text into chunks that fit within the model's token limit."""
         # Split by sentences first (better semantic boundaries)
         sentences = text.split('. ')
@@ -65,7 +71,7 @@ class BackTranslator:
         
         return chunks
     
-    def _translate_chunks(self, chunks, source_tokenizer, source_model, target_tokenizer, max_length=400):
+    def _translate_chunks(self, chunks, source_tokenizer, source_model, target_tokenizer, max_length=256):
         """Translate a list of text chunks."""
         translated_chunks = []
         
