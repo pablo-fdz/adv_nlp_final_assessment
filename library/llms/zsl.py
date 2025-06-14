@@ -2,6 +2,7 @@ import os
 import json
 from groq import Groq
 from dotenv import load_dotenv, find_dotenv
+import re
 
 # Load config file
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../config_files/llm_config.json')
@@ -28,12 +29,23 @@ def classify_case(case_text):
             max_tokens=config["model_settings"]["max_tokens"]
         )
         prediction_text = response.choices[0].message.content.strip()
-        if "0" in prediction_text:
-            return 0
-        elif "1" in prediction_text:
-            return 1
-        else:
-            return config["error_handling"]["default_label"]
+        
+        # Extract JSON from the response, even if it's surrounded by markdown
+        # Remove markdown code block markers if present
+        json_match = re.search(r"\{[\s\S]*\}", prediction_text)
+        if json_match:
+            json_str = json_match.group(0)
+            try:
+                parsed = json.loads(json_str)
+                label = parsed.get("label", config["error_handling"]["default_label"])
+                if label in [0, 1]:
+                    return label
+            except json.JSONDecodeError:
+                pass  # Will fall through to default below
+        
+        # If parsing fails, return default label
+        return config["error_handling"]["default_label"]
+    
     except Exception as e:
         print(f"Error in API call: {e}")
         return config["error_handling"]["default_label"]
