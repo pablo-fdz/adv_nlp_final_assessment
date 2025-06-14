@@ -1,0 +1,23 @@
+{
+  "model_settings": {
+    "model_name": "gemma2-9b-it",
+    "temperature": 0,
+    "max_tokens": 3000
+  },
+  "prompt_settings": {
+    "system_message": "Vous êtes un juriste qui analyse des affaires du Tribunal fédéral suisse.",
+    "user_prompt_template": "En vous basant uniquement sur les faits de l'affaire ci-dessous, déterminez si l'affaire doit être rejetée (0) ou approuvée (1).\n\nLe rejet (0) signifie que le tribunal est défavorable à la demande.\n\nL'approbation (1) signifie que la juridiction est favorable à la demande.\n\nFaits de l'affaire :\n{case_text}\n\nAnalysez l'affaire et répondez par un seul chiffre : 0 pour le rejet ou 1 pour l'approbation.\n\nN'indiquez PAS « 0 » par défaut si vous n'êtes pas sûr de vous. Attribuez l'étiquette la plus probable.\n\nRetourne uniquement un objet JSON.\n\nRéponse:",
+    "response_guidelines": {
+      "class_0": "rejet",
+      "class_1": "approbation"
+    }
+  },
+  "processing_settings": {
+    "batch_size": 10,
+    "delay_between_requests": 0
+  },
+  "error_handling": {
+    "retry_attempts": 2,
+    "default_label": 0
+  }
+}
