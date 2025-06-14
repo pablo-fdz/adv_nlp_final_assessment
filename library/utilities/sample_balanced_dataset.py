@@ -2,7 +2,12 @@ import polars as pl
 from datasets import Dataset
 
 # Function to sample balanced dataset
-def sample_balanced_dataset(dataset: pl.DataFrame, num_samples, seed):
+def sample_balanced_dataset(
+        dataset: pl.DataFrame, 
+        num_samples, 
+        seed, 
+        sample_proportion=0.5
+    ):
 
     """
     Sample a balanced dataset with equal numbers of positive and negative examples.
@@ -11,6 +16,7 @@ def sample_balanced_dataset(dataset: pl.DataFrame, num_samples, seed):
         dataset (pl.DataFrame): The input dataset containing 'text' and 'label' columns.
         num_samples (int): Total number of samples to return, must be even.
         seed (int): Random seed for reproducibility.
+        sample_proportion (float): Proportion of positive samples to include in the balanced dataset.
     Returns:
         Dataset: A balanced Dataset object with equal numbers of positive and negative examples.
     """
@@ -19,8 +25,11 @@ def sample_balanced_dataset(dataset: pl.DataFrame, num_samples, seed):
     pos_examples = dataset.filter(pl.col('label') == 1)
     neg_examples = dataset.filter(pl.col('label') == 0)
     
+    # Calculate the inverse of the sample proportion
+    denominator = 1 / sample_proportion
+
     # Sample equal numbers from each class
-    samples_per_class = num_samples // 2
+    samples_per_class = num_samples // denominator
     
     if seed is not None:
         pos_sampled = pos_examples.sample(n=samples_per_class, shuffle=True, seed=seed)
