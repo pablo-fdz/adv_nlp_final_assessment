@@ -9,7 +9,7 @@ def augment_dataset(dataset: Dataset, techniques: list, r_augmentations: float =
         dataset (Dataset): The input dataset to augment. Must contain a 'text' and
             'label' field.
         techniques (list): List of augmentation techniques to apply.
-        r_augmentations (float): Rate of augmentations to apply per each augmentation technique,
+        augmentation_rate (float): Rate of augmentations to apply per each augmentation technique,
             expressed as a proportion of the dataset size (e.g., 0.2 for 20%).
             This determines how many augmented examples will be generated.
         seed (int): Random seed for reproducibility.
@@ -18,7 +18,6 @@ def augment_dataset(dataset: Dataset, techniques: list, r_augmentations: float =
         Dataset: The augmented dataset.
     """
     # Initialize a seed counter for reproducibility
-    random.seed(seed)
     seed_counter = 0
     
     # Calculate the number of augmentations based on the proportion

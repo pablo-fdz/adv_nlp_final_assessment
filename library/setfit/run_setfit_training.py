@@ -3,6 +3,7 @@ import os
 import setfit
 from datasets import Dataset
 from ..utilities import sample_balanced_dataset
+from ..data_augmentation import augment_dataset
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 import torch
 
@@ -27,10 +28,14 @@ def run_setfit_training(train_df: pl.DataFrame, val_df: pl.DataFrame,
         num_iterations (int): Number of iterations to run the training process.
         seed (int): Random seed for reproducibility.
         sample_proportion (float): Proportion of positive samples to include in the balanced dataset.
-        augmentation_rate (float): Rate of augmentation to apply to the training data.
-            For example, if set to 0.5, each of the augmentation techniques will be 
-            applied to 50% of the original training data.
-        augmentation_techniques (list): List of augmentation techniques to apply to the training data.
+        augmentation_rate (float): Rate of augmentations to apply per each augmentation 
+            technique to the training data,expressed as a proportion of the dataset size 
+            (e.g., 0.2 for 20%). This determines how many augmented examples will be generated.
+            For example, if augmentation_rate is 0.2, the sample_size is 100, and the
+            number of augmentation techniques is 2, then the total number of labelled
+            examples in the training set will be 100 + (0.2 * 100 * 2) = 140.
+        augmentation_techniques (list): List of initialized augmentation objects 
+            to apply to the training data (like RandomDeletion, RandomInsertion, etc.).
     
     Returns:
         list: A list of dictionaries containing evaluation metrics for each iteration.
@@ -55,7 +60,13 @@ def run_setfit_training(train_df: pl.DataFrame, val_df: pl.DataFrame,
         # Sample balanced training data
         train_samples = sample_balanced_dataset(train_df, sample_size, seed + iteration, sample_proportion)
 
-        # if augmentation_rate is not None and augmentation_techniques is not None:
+        if augmentation_rate is not None and augmentation_techniques is not None:
+            train_samples = augment_dataset(
+                dataset=train_samples,
+                techniques=augmentation_techniques,
+                augmentation_rate=augmentation_rate,
+                seed=seed + iteration  # Ensure reproducibility across iterations
+            )
 
         # Create the training arguments
         train_args = setfit.TrainingArguments(
