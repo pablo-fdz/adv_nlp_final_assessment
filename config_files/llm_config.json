@@ -1,25 +1,12 @@
 {
-  "task": "zero-shot-classification",
-  "description": "Classify Swiss Federal Court cases as either rejected (0) or approved (1) based on the case facts.",
-  "language": "fr",
-  "model": "deepseek-r1-distill-llama-70b",
-  "labels": ["rejet", "approbation"],
-  "input_format": {
-    "case_text": "string"
-  },
-  "output_format": {
-    "label": "integer"
-  }
-}
-{
   "model_settings": {
     "model_name": "deepseek-r1-distill-llama-70b",
     "temperature": 0,
-    "max_tokens": 1000
+    "max_tokens": 3000
   },
   "prompt_settings": {
-    "system_message": "Vous êtes un juriste qui analyse des affaires du Tribunal fédéral suisse. Les textes sont en français. Vous devez déterminer la langue à partir du texte.",
-    "user_prompt_template": "En vous basant uniquement sur les faits de l'affaire ci-dessous, déterminez si l'affaire doit être rejetée (0) ou approuvée (1).\n\nLe rejet (0) signifie que le recours est rejeté\nL'approbation (1) signifie que le recours est accepté.\n\nFaits de l'affaire :\n{case_text}\n\nAnalysez le cas et répondez par un seul chiffre : 0 pour le rejet ou 1 pour l'approbation.",
+    "system_message": "Vous êtes un juriste qui analyse des affaires du Tribunal fédéral suisse.",
+    "user_prompt_template": "En vous basant uniquement sur les faits de l'affaire ci-dessous, déterminez si l'affaire doit être rejetée (0) ou approuvée (1).\n\nLe rejet (0) signifie que le tribunal est défavorable à la demande.\n\nL'approbation (1) signifie que la juridiction est favorable à la demande.\n\nFaits de l'affaire :\n{case_text}\n\nAnalysez l'affaire et répondez par un seul chiffre : 0 pour le rejet ou 1 pour l'approbation.",
     "response_guidelines": {
       "class_0": "rejet",
       "class_1": "approbation"
@@ -27,10 +14,9 @@
   },
   "processing_settings": {
     "batch_size": 10,
-    "delay_between_requests": 0.5
+    "delay_between_requests": 0
   },
   "error_handling": {
-    "default_label": 0,
     "retry_attempts": 2
   }
 }
