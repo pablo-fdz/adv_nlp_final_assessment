@@ -31,13 +31,12 @@ def classify_case(case_text):
         prediction_text = response.choices[0].message.content.strip()
         
         # Extract JSON from the response, even if it's surrounded by markdown
-        # Remove markdown code block markers if present
         json_match = re.search(r"\{[\s\S]*\}", prediction_text)
         if json_match:
             json_str = json_match.group(0)
             try:
                 parsed = json.loads(json_str)
-                label = parsed.get("label", config["error_handling"]["default_label"])
+                label = parsed.get("labels", config["error_handling"]["default_label"])
                 if label in [0, 1]:
                     return label
             except json.JSONDecodeError:
