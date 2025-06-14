@@ -10,7 +10,6 @@ with open(CONFIG_PATH, encoding='utf-8') as f:
     config = json.load(f)
 
 load_dotenv(find_dotenv())
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def create_legal_prompt(case_text):
     """Create the legal prompt using the template from config."""
