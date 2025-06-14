@@ -1,7 +1,7 @@
 from datasets import Dataset
 import random
 
-def augment_dataset(dataset: Dataset, techniques: list, r_augmentations: float = 0.2, seed: int = 42):
+def augment_dataset(dataset: Dataset, techniques: list, augmentation_rate: float = 0.2, seed: int = 42):
     """
     Augment the dataset using specified techniques.
     
@@ -21,7 +21,7 @@ def augment_dataset(dataset: Dataset, techniques: list, r_augmentations: float =
     seed_counter = 0
     
     # Calculate the number of augmentations based on the proportion
-    n_augmentations = int(len(dataset) * r_augmentations)
+    n_augmentations = int(len(dataset) * augmentation_rate)
     
     # Start with all the original examples
     all_examples = list(dataset)
