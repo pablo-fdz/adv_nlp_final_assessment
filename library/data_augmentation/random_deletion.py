@@ -7,7 +7,6 @@ class RandomDeletion:
         Initalizes the RandomDeletion object.
 
         Args:
-            text (str): The input text from which words will be deleted.
             p (float): Probability of deleting each word. Default is 0.1.
             seed (int): Random seed for reproducibility.
         """
