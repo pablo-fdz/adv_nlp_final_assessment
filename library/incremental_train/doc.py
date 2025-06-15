@@ -25,12 +25,16 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     # Ensure n_samples is at least 2 and even (for binary balance)
     n_samples = max(2, n_samples - n_samples % 2)
     # Use balanced sampling instead of random sampling
+    # We convert the Polars Data Frame to an arrow Dataset and get a sample of the training data
+    if 'labels' in train_df.columns:
+        train_df = train_df.rename({'labels': 'label'})  # Rename 'labels' to 'label' for compatibility with sampling function
     train_subset = sample_balanced_dataset(train_df, n_samples, seed)
-    train_set = Dataset.from_polars(train_subset.select(['text', 'labels']))
+    if 'label' in train_subset.column_names:
+        train_subset = train_subset.rename_column('label', 'labels')  # Rename the label column again to 'labels' for compatibility with Hugging Face Trainer
     val_set = Dataset.from_polars(valid_df.select(['text', 'labels']))
-    train_set = train_set.map(lambda x: tokenize(x, tokenizer, max_length), batched=True, remove_columns=["text"])
+    train_subset = train_subset.map(lambda x: tokenize(x, tokenizer, max_length), batched=True, remove_columns=["text"])
     val_set = val_set.map(lambda x: tokenize(x, tokenizer, max_length), batched=True, remove_columns=["text"])
-    train_set.set_format(type='torch')
+    train_subset.set_format(type='torch')
     val_set.set_format(type='torch')
     model = AutoModelForSequenceClassification.from_pretrained(
         pretrained_model_name_or_path=model_name,
@@ -40,7 +44,7 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     san_model_name = model_name.split(sep='/')[-1]
     use_fp16 = torch.cuda.is_available()
     train_args = TrainingArguments(
-        output_dir=os.path.join('models', 'part_2', 'a', f'cls_fine_tuning_{san_model_name}_{percentage}pct'),
+        output_dir=os.path.join('models', 'part_3', 'a', f'cls_fine_tuning_{san_model_name}_{percentage}pct'),
         eval_strategy="epoch",
         save_strategy="epoch",
         logging_strategy="steps",
@@ -61,7 +65,7 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     trainer = Trainer(
         model=model,
         args=train_args,
-        train_dataset=train_set,
+        train_dataset=train_subset,
         eval_dataset=val_set.shuffle(seed=seed),
         compute_metrics=lambda p: {
             "accuracy": accuracy_score(p.label_ids, np.argmax(p.predictions, axis=1)),
@@ -75,7 +79,7 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     log_history = trainer.state.log_history
     epoch_logs = [log for log in log_history if 'epoch' in log]
     results_df = pl.DataFrame(epoch_logs)
-    results_path = os.path.join('results', 'part_2', 'a', f'cls_fine_tuning_results_{san_model_name}_{percentage}pct.parquet')
+    results_path = os.path.join('results', 'part_3', 'a', f'cls_fine_tuning_results_{san_model_name}_{percentage}pct.parquet')
     os.makedirs(os.path.dirname(results_path), exist_ok=True)
     results_df.write_parquet(results_path)
     best_epoch = results_df.filter(pl.col('eval_loss') == results_df['eval_loss'].min())
