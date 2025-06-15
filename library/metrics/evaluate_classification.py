@@ -6,21 +6,24 @@ from sklearn.metrics import (classification_report, confusion_matrix,
                             roc_curve, auc, precision_recall_curve, 
                             average_precision_score)
 
-def evaluate_classification(y_true, y_pred, base_filename, labels=None, probas=None, results_dir="results"):
+def evaluate_classification(y_true: list[int], y_pred: list[int], base_filename, labels: list[int]=None, probas=None, results_dir="results"):
     """
     Evaluates classification performance and saves visualization results
     
     Args:
         y_true : list or array
-            Ground truth labels
+            Ground truth labels. Should be a list of integers representing the true labels.
         y_pred : list or array
-            Predicted labels
+            Predicted labels. Should be a list of integers representing the predicted labels.
         base_filename : str
             Base name for saved files (e.g. "zero_shot", "few_shot")
         labels : list, optional
-            List of class labels
+            List of class labels. Should be a list of integers representing the class labels.
+            E.g., 0 for negative class (dismissal) and 1 for positive (approval).
+            If None, it will be inferred from y_true.
         probas : array-like, optional
-            Predicted probabilities for ROC and PR curves
+            Predicted probabilities for the positive class for ROC and PR curves.
+            Should be a list or array of floats representing the predicted probabilities.
         results_dir : str, optional
             Directory to save results
     Returns:
@@ -65,12 +68,16 @@ def evaluate_classification(y_true, y_pred, base_filename, labels=None, probas=N
     if probas is not None:
         # Convert labels to binary format for the curves
         unique_labels = sorted(list(set(y_true)))
+        print(f"Unique labels found: {unique_labels}")
         label_to_idx = {label: i for i, label in enumerate(unique_labels)}
+        print(f"Label to index mapping: {label_to_idx}")
         y_binary = np.array([label_to_idx[y] for y in y_true])
+        print("First 5 TRUE sorbinary labels for ROC/PR curves:", y_binary[:5])
         y_score = probas
+        print("First 5 predicted probabilities for ROC/PR curves:", y_score[:5])
         
         # 3. ROC curve
-        fpr, tpr, _ = roc_curve(y_binary, y_score)
+        fpr, tpr, _ = roc_curve(y_binary, y_score, pos_label=1)
         roc_auc = auc(fpr, tpr)
         
         plt.figure(figsize=(8, 6))
@@ -90,7 +97,7 @@ def evaluate_classification(y_true, y_pred, base_filename, labels=None, probas=N
         results["saved_files"].append(roc_path)
         
         # 4. Precision-Recall curve
-        precision, recall, _ = precision_recall_curve(y_binary, y_score)
+        precision, recall, _ = precision_recall_curve(y_binary, y_score, pos_label=1)
         avg_precision = average_precision_score(y_binary, y_score)
         
         plt.figure(figsize=(8, 6))

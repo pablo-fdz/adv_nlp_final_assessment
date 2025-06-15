@@ -40,9 +40,8 @@ def evaluate_setfit_on_test(model_path, test_df, sample_size, seed):
 
     # Get prediction probabilities
     test_probabilities = best_setfit_model.predict_proba(test_texts)
-    test_probabilities_list = test_probabilities.tolist()  # Convert probabilities to a list
 
     # Extract probabilities for the positive class
-    y_pred_probas = test_probabilities[:, 1]  # Extract the positive label (index 1) probabilities
+    y_pred_probas = test_probabilities[:, 1].tolist()  # Extract the positive label (index 1) probabilities
     
     return y_true, y_pred_labels, y_pred_probas
