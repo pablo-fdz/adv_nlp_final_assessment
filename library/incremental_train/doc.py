@@ -11,6 +11,7 @@ from transformers import (
     EarlyStoppingCallback
 )
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from library.utilities import sample_balanced_dataset
 
 def tokenize(batch, tokenizer, max_length):
     return tokenizer(batch["text"], padding="max_length", truncation=True, max_length=max_length)
@@ -21,7 +22,10 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     """
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     n_samples = int(len(train_df) * percentage / 100)
-    train_subset = train_df.sample(n=n_samples, shuffle=True, seed=seed)
+    # Ensure n_samples is at least 2 and even (for binary balance)
+    n_samples = max(2, n_samples - n_samples % 2)
+    # Use balanced sampling instead of random sampling
+    train_subset = sample_balanced_dataset(train_df, n_samples, seed)
     train_set = Dataset.from_polars(train_subset.select(['text', 'labels']))
     val_set = Dataset.from_polars(valid_df.select(['text', 'labels']))
     train_set = train_set.map(lambda x: tokenize(x, tokenizer, max_length), batched=True, remove_columns=["text"])
@@ -81,25 +85,11 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
         'results_path': results_path
     }
 
-def run_incremental_training(train_df, valid_df, model_name, max_length, num_labels, seed=42, test_mode=False, test_percentage=1):
+def run_incremental_training(train_df, valid_df, model_name, max_length, num_labels, seed=42):
     """
     Run training with different percentages of the dataset.
-    
-    Args:
-        train_df: Training dataframe
-        valid_df: Validation dataframe
-        model_name: Name of the model to use
-        max_length: Maximum sequence length
-        num_labels: Number of labels
-        seed: Random seed
-        test_mode: If True, only train with test_percentage. If False, train with all percentages
-        test_percentage: Percentage to use when test_mode is True
     """
-    if test_mode:
-        percentages = [test_percentage]
-    else:
-        percentages = [1, 10, 25, 50, 75, 100]
-    
+    percentages = [1, 10, 25, 50, 75, 100]
     all_results = []
     for pct in percentages:
         print(f"\nTraining with {pct}% of the data...")
@@ -107,7 +97,6 @@ def run_incremental_training(train_df, valid_df, model_name, max_length, num_lab
         all_results.append(result)
         print(f"\nBest metrics for {pct}% of data:")
         print(result['best_epoch'])
-    
     summary_data = []
     for result in all_results:
         best_epoch = result['best_epoch']
@@ -119,14 +108,10 @@ def run_incremental_training(train_df, valid_df, model_name, max_length, num_lab
             'eval_precision': best_epoch['eval_precision'].item(),
             'eval_recall': best_epoch['eval_recall'].item()
         })
-    
     summary_df = pl.DataFrame(summary_data)
     print("\nSummary of results across all percentages:")
     print(summary_df)
-    
-    # Modify the output filename to indicate if it's a test run
-    model_suffix = f"test_{test_percentage}pct" if test_mode else model_name.split('/')[-1]
-    summary_path = os.path.join('results', 'part_2', 'a', f"cls_fine_tuning_summary_{model_suffix}.parquet")
+    summary_path = os.path.join('results', 'part_3', f"cls_fine_tuning_summary_{model_name.split('/')[-1]}.parquet")
     summary_df.write_parquet(summary_path)
     print(f'\nSummary saved to: {summary_path}')
     return summary_df 
