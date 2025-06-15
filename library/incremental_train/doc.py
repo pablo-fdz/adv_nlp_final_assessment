@@ -20,17 +20,46 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     """
     Train the model with a specific percentage of the training data.
     """
+
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     n_samples = int(len(train_df) * percentage / 100)
+    
     # Ensure n_samples is at least 2 and even (for binary balance)
     n_samples = max(2, n_samples - n_samples % 2)
-    # Use balanced sampling instead of random sampling
-    # We convert the Polars Data Frame to an arrow Dataset and get a sample of the training data
-    if 'labels' in train_df.columns:
-        train_df = train_df.rename({'labels': 'label'})  # Rename 'labels' to 'label' for compatibility with sampling function
-    train_subset = sample_balanced_dataset(train_df, n_samples, seed)
+    samples_per_class = n_samples // 2
+    
+    # Make a copy to avoid modifying the original DataFrame
+    train_df_copy = train_df.clone()
+    
+    # Rename columns if needed
+    if 'labels' in train_df_copy.columns:
+        train_df_copy = train_df_copy.rename({'labels': 'label'})
+    
+    # Split by class
+    pos_examples = train_df_copy.filter(pl.col('label') == 1)
+    neg_examples = train_df_copy.filter(pl.col('label') == 0)
+    
+    # Check if we need to use replacement sampling
+    pos_with_replacement = (samples_per_class > pos_examples.shape[0])
+    neg_with_replacement = (samples_per_class > neg_examples.shape[0])
+    
+    # Sample from each class, using replacement if necessary
+    if pos_with_replacement:
+        print(f"Using sampling with replacement for positive class (need {samples_per_class}, have {pos_examples.shape[0]})")
+    pos_sampled = pos_examples.sample(n=samples_per_class, shuffle=True, seed=seed, with_replacement=pos_with_replacement)
+    
+    if neg_with_replacement:
+        print(f"Using sampling with replacement for negative class (need {samples_per_class}, have {neg_examples.shape[0]})")
+    neg_sampled = neg_examples.sample(n=samples_per_class, shuffle=True, seed=seed, with_replacement=neg_with_replacement)
+    
+    # Combine the samples
+    train_subset = pl.concat([pos_sampled, neg_sampled])
+    train_subset = Dataset.from_polars(train_subset)
+    
+    # Rename if needed for HF compatibility
     if 'label' in train_subset.column_names:
-        train_subset = train_subset.rename_column('label', 'labels')  # Rename the label column again to 'labels' for compatibility with Hugging Face Trainer
+        train_subset = train_subset.rename_column('label', 'labels')
+    
     val_set = Dataset.from_polars(valid_df.select(['text', 'labels']))
     train_subset = train_subset.map(lambda x: tokenize(x, tokenizer, max_length), batched=True, remove_columns=["text"])
     val_set = val_set.map(lambda x: tokenize(x, tokenizer, max_length), batched=True, remove_columns=["text"])
