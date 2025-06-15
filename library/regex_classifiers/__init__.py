@@ -1,2 +1,3 @@
 from .regex_classifier import regex_classifier
-from .regex_classifier_ext import regex_classifier_ext
+from .regex_classifier_ext import regex_classifier_ext 
+from .hyperparameter_tuning import plot_accuracies_curve
