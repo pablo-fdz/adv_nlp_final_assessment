@@ -1,6 +1,8 @@
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 import seaborn as sns
 
 class Metrics:
@@ -186,4 +188,21 @@ class Metrics:
 
         plt.suptitle("Model Performance Comparison", fontsize=16)
         plt.tight_layout(rect=[0, 0.03, 1, 0.95]) # Adjust layout to prevent title overlap
+        plt.show()
+
+    def confusion_matrix(self, y_true, y_pred, method_name):
+        """
+        Computes and displays the confusion matrix for the given predictions.
+
+        Args:
+            y_true: Array-like of true target values.
+            y_pred: Array-like of predicted target values.
+            method_name (str): Name of the method/model being evaluated.
+        """
+        cm = confusion_matrix(y_true, y_pred)
+
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+        plt.xlabel("Predicted")
+        plt.ylabel("True")
+        plt.title("Confusion Matrix")
         plt.show()
