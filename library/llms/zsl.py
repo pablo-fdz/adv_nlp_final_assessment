@@ -4,13 +4,13 @@ from groq import Groq
 from dotenv import load_dotenv, find_dotenv
 import re
 
-# Load config file
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../config_files/llm_config.json')
-with open(CONFIG_PATH, encoding='utf-8') as f:
-    config = json.load(f)
+# # Load config file
+# CONFIG_PATH = os.path.join(os.path.dirname(__file__), '../../config_files/llm_config.json')
+# with open(CONFIG_PATH, encoding='utf-8') as f:
+#     config = json.load(f)
 
-load_dotenv(find_dotenv())
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# load_dotenv(find_dotenv())
+# client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def create_legal_prompt(case_text):
     """Create the legal prompt using the template from config."""
