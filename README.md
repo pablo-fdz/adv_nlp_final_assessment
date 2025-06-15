@@ -6,11 +6,11 @@ Source of the data: https://huggingface.co/datasets/rcds/swiss_judgment_predicti
 
 ### Task
 
-The goal of this project is to explore the task of legal judgment prediction using various NLP techniques, like lexicon-based and transformer-powered classification. This task was a priori a challenging one, because normally deciding on legal cases requires an understanding of case complexities, legal precedence and national/international law.
+The goal of this project is to explore the task of legal judgment prediction using various NLP techniques, like lexicon-based and transformer-powered classification. This task was a priori a challenging one, because deciding on a legal case usually requires an understanding of case complexities, legal precedence and national/international law.
 
 ### Dataset
 
-- The FSCS is the last level of appeal in Switzerland and hears only the most controversial cases which could not have been sufficiently well solved by (up to two) lower courts. In their decisions, they often focus only on small parts of previous decision, where they discuss possible wrong reasoning by the lower court. This makes these cases particularly challenging.
+- Our dataset comes from a multilingual (German, French, and Italian), diachronic (2000-2020) corpus of 85K cases from the Federal Supreme Court of Switzerland (FSCS). The FSCS is the last level of appeal in Switzerland and hears only the most controversial cases which could not have been sufficiently well solved by (up to two) lower courts. In their decisions, the FSCS often focuses only on small parts of previous decision, where they discuss possible wrong reasoning by the lower court. This makes these cases particularly challenging.
 - The dataset is highly imbalanced containing more than 75% dismissed cases. The label skewness makes the classification task quite hard and beating dummy baselines, e.g., predicting always the majority class, on microaveraged measures (e.g., Micro-F1) is challenging.
 
 
