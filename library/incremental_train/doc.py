@@ -11,14 +11,29 @@ from transformers import (
     EarlyStoppingCallback
 )
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
-from library.utilities import sample_balanced_dataset
+from ..data_augmentation import augment_dataset
 
 def tokenize(batch, tokenizer, max_length):
     return tokenizer(batch["text"], padding="max_length", truncation=True, max_length=max_length)
 
-def train_with_percentage(train_df, valid_df, percentage, model_name, max_length, num_labels, seed=42):
+def train_with_percentage(train_df, valid_df, percentage, model_name, max_length, num_labels, seed=42,
+                          sample_proportion=0.5, augmentation_rate: float=None, augmentation_techniques: list=None):
     """
     Train the model with a specific percentage of the training data.
+
+    Args:
+        train_df (pl.DataFrame): The training dataset containing 'text' and 'labels'.
+        valid_df (pl.DataFrame): The validation dataset containing 'text' and 'labels'.
+        percentage (int): Percentage of the training data to use for training.
+        model_name (str): Name of the pre-trained model to use.
+        max_length (int): Maximum length for tokenization.
+        num_labels (int): Number of labels for classification.
+        seed (int): Random seed for reproducibility.
+        sample_proportion (float): Proportion of positive samples to include in the balanced dataset.
+        augmentation_rate (float): Rate of augmentations to apply per each augmentation technique,
+            expressed as a proportion of the dataset size (e.g., 0.2 for 20%).
+            This determines how many augmented examples will be generated.
+        augmentation_techniques (list): List of initialized augmentation objects to apply to the training data.
     """
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -26,7 +41,12 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     
     # Ensure n_samples is at least 2 and even (for binary balance)
     n_samples = max(2, n_samples - n_samples % 2)
-    samples_per_class = n_samples // 2
+
+    # Calculate the inverse of the sample proportion
+    denominator = 1 / sample_proportion
+
+    # Sample equal numbers from each class
+    samples_per_class = n_samples // denominator
     
     # Make a copy to avoid modifying the original DataFrame
     train_df_copy = train_df.clone()
@@ -55,6 +75,15 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     # Combine the samples
     train_subset = pl.concat([pos_sampled, neg_sampled])
     train_subset = Dataset.from_polars(train_subset)
+
+    # Augment dataset with specified techniques if provided
+    if augmentation_rate is not None and augmentation_techniques is not None:
+        train_subset = augment_dataset(
+            dataset=train_subset,
+            techniques=augmentation_techniques,
+            augmentation_rate=augmentation_rate,
+            seed=seed  # Ensure reproducibility across iterations
+        )
     
     # Rename if needed for HF compatibility
     if 'label' in train_subset.column_names:
@@ -118,15 +147,30 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
         'results_path': results_path
     }
 
-def run_incremental_training(train_df, valid_df, model_name, max_length, num_labels, seed=42):
+def run_incremental_training(train_df, valid_df, model_name, max_length, num_labels, seed=42,
+                             sample_proportion=0.5, augmentation_rate: float=None, augmentation_techniques: list=None):
     """
-    Run training with different percentages of the dataset.
+    Run training with different percentages of the dataset (1%, 10%, 25%, 50%, 75%, 100%).
+
+    Args:
+        train_df (pl.DataFrame): The training dataset containing 'text' and 'labels'.
+        valid_df (pl.DataFrame): The validation dataset containing 'text' and 'labels'.
+        model_name (str): Name of the pre-trained model to use.
+        max_length (int): Maximum length for tokenization.
+        num_labels (int): Number of labels for classification.
+        seed (int): Random seed for reproducibility.
+        sample_proportion (float): Proportion of positive samples to include in the balanced dataset.
+        augmentation_rate (float): Rate of augmentations to apply per each augmentation technique,
+            expressed as a proportion of the dataset size (e.g., 0.2 for 20%).
+            This determines how many augmented examples will be generated.
+        augmentation_techniques (list): List of initialized augmentation objects to apply to the training data.
     """
     percentages = [1, 10, 25, 50, 75, 100]
     all_results = []
     for pct in percentages:
         print(f"\nTraining with {pct}% of the data...")
-        result = train_with_percentage(train_df, valid_df, pct, model_name, max_length, num_labels, seed)
+        result = train_with_percentage(train_df, valid_df, pct, model_name, max_length, num_labels, seed,
+                                       sample_proportion, augmentation_rate, augmentation_techniques)
         all_results.append(result)
         print(f"\nBest metrics for {pct}% of data:")
         print(result['best_epoch'])
