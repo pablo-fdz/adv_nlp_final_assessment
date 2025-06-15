@@ -20,17 +20,50 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     """
     Train the model with a specific percentage of the training data.
     """
+
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     n_samples = int(len(train_df) * percentage / 100)
+    
     # Ensure n_samples is at least 2 and even (for binary balance)
     n_samples = max(2, n_samples - n_samples % 2)
-    # Use balanced sampling instead of random sampling
-    train_subset = sample_balanced_dataset(train_df, n_samples, seed)
-    train_set = Dataset.from_polars(train_subset.select(['text', 'labels']))
+    samples_per_class = n_samples // 2
+    
+    # Make a copy to avoid modifying the original DataFrame
+    train_df_copy = train_df.clone()
+    
+    # Rename columns if needed
+    if 'labels' in train_df_copy.columns:
+        train_df_copy = train_df_copy.rename({'labels': 'label'})
+    
+    # Split by class
+    pos_examples = train_df_copy.filter(pl.col('label') == 1)
+    neg_examples = train_df_copy.filter(pl.col('label') == 0)
+    
+    # Check if we need to use replacement sampling
+    pos_with_replacement = (samples_per_class > pos_examples.shape[0])
+    neg_with_replacement = (samples_per_class > neg_examples.shape[0])
+    
+    # Sample from each class, using replacement if necessary
+    if pos_with_replacement:
+        print(f"Using sampling with replacement for positive class (need {samples_per_class}, have {pos_examples.shape[0]})")
+    pos_sampled = pos_examples.sample(n=samples_per_class, shuffle=True, seed=seed, with_replacement=pos_with_replacement)
+    
+    if neg_with_replacement:
+        print(f"Using sampling with replacement for negative class (need {samples_per_class}, have {neg_examples.shape[0]})")
+    neg_sampled = neg_examples.sample(n=samples_per_class, shuffle=True, seed=seed, with_replacement=neg_with_replacement)
+    
+    # Combine the samples
+    train_subset = pl.concat([pos_sampled, neg_sampled])
+    train_subset = Dataset.from_polars(train_subset)
+    
+    # Rename if needed for HF compatibility
+    if 'label' in train_subset.column_names:
+        train_subset = train_subset.rename_column('label', 'labels')
+    
     val_set = Dataset.from_polars(valid_df.select(['text', 'labels']))
-    train_set = train_set.map(lambda x: tokenize(x, tokenizer, max_length), batched=True, remove_columns=["text"])
+    train_subset = train_subset.map(lambda x: tokenize(x, tokenizer, max_length), batched=True, remove_columns=["text"])
     val_set = val_set.map(lambda x: tokenize(x, tokenizer, max_length), batched=True, remove_columns=["text"])
-    train_set.set_format(type='torch')
+    train_subset.set_format(type='torch')
     val_set.set_format(type='torch')
     model = AutoModelForSequenceClassification.from_pretrained(
         pretrained_model_name_or_path=model_name,
@@ -40,7 +73,7 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     san_model_name = model_name.split(sep='/')[-1]
     use_fp16 = torch.cuda.is_available()
     train_args = TrainingArguments(
-        output_dir=os.path.join('models', 'part_2', 'a', f'cls_fine_tuning_{san_model_name}_{percentage}pct'),
+        output_dir=os.path.join('models', 'part_3', 'a', f'cls_fine_tuning_{san_model_name}_{percentage}pct'),
         eval_strategy="epoch",
         save_strategy="epoch",
         logging_strategy="steps",
@@ -48,7 +81,7 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
         learning_rate=2e-5,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=16,
-        num_train_epochs=20,
+        num_train_epochs=10,
         weight_decay=0.01,
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
@@ -61,7 +94,7 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     trainer = Trainer(
         model=model,
         args=train_args,
-        train_dataset=train_set,
+        train_dataset=train_subset,
         eval_dataset=val_set.shuffle(seed=seed),
         compute_metrics=lambda p: {
             "accuracy": accuracy_score(p.label_ids, np.argmax(p.predictions, axis=1)),
@@ -75,7 +108,7 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     log_history = trainer.state.log_history
     epoch_logs = [log for log in log_history if 'epoch' in log]
     results_df = pl.DataFrame(epoch_logs)
-    results_path = os.path.join('results', 'part_2', 'a', f'cls_fine_tuning_results_{san_model_name}_{percentage}pct.parquet')
+    results_path = os.path.join('results', 'part_3', 'a', f'cls_fine_tuning_results_{san_model_name}_{percentage}pct.parquet')
     os.makedirs(os.path.dirname(results_path), exist_ok=True)
     results_df.write_parquet(results_path)
     best_epoch = results_df.filter(pl.col('eval_loss') == results_df['eval_loss'].min())
