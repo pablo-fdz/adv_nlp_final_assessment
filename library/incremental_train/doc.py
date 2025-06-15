@@ -81,11 +81,25 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
         'results_path': results_path
     }
 
-def run_incremental_training(train_df, valid_df, model_name, max_length, num_labels, seed=42):
+def run_incremental_training(train_df, valid_df, model_name, max_length, num_labels, seed=42, test_mode=False, test_percentage=1):
     """
     Run training with different percentages of the dataset.
+    
+    Args:
+        train_df: Training dataframe
+        valid_df: Validation dataframe
+        model_name: Name of the model to use
+        max_length: Maximum sequence length
+        num_labels: Number of labels
+        seed: Random seed
+        test_mode: If True, only train with test_percentage. If False, train with all percentages
+        test_percentage: Percentage to use when test_mode is True
     """
-    percentages = [1, 10, 25, 50, 75, 100]
+    if test_mode:
+        percentages = [test_percentage]
+    else:
+        percentages = [1, 10, 25, 50, 75, 100]
+    
     all_results = []
     for pct in percentages:
         print(f"\nTraining with {pct}% of the data...")
@@ -93,6 +107,7 @@ def run_incremental_training(train_df, valid_df, model_name, max_length, num_lab
         all_results.append(result)
         print(f"\nBest metrics for {pct}% of data:")
         print(result['best_epoch'])
+    
     summary_data = []
     for result in all_results:
         best_epoch = result['best_epoch']
@@ -104,10 +119,14 @@ def run_incremental_training(train_df, valid_df, model_name, max_length, num_lab
             'eval_precision': best_epoch['eval_precision'].item(),
             'eval_recall': best_epoch['eval_recall'].item()
         })
+    
     summary_df = pl.DataFrame(summary_data)
     print("\nSummary of results across all percentages:")
     print(summary_df)
-    summary_path = os.path.join('results', 'part_2', 'a', f'cls_fine_tuning_summary_{model_name.split('/')[-1]}.parquet')
+    
+    # Modify the output filename to indicate if it's a test run
+    model_suffix = f"test_{test_percentage}pct" if test_mode else model_name.split('/')[-1]
+    summary_path = os.path.join('results', 'part_2', 'a', f"cls_fine_tuning_summary_{model_suffix}.parquet")
     summary_df.write_parquet(summary_path)
     print(f'\nSummary saved to: {summary_path}')
     return summary_df 
