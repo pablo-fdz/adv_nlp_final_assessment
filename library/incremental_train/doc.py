@@ -17,7 +17,8 @@ def tokenize(batch, tokenizer, max_length):
     return tokenizer(batch["text"], padding="max_length", truncation=True, max_length=max_length)
 
 def train_with_percentage(train_df, valid_df, percentage, model_name, max_length, num_labels, seed=42,
-                          sample_proportion=0.5, augmentation_rate: float=None, augmentation_techniques: list=None):
+                          sample_proportion=0.5, augmentation_rate: float=None, augmentation_techniques: list=None,
+                          output_path:str=os.path.join('part_3', 'a'), custom_model_name_suffix:str=None):
     """
     Train the model with a specific percentage of the training data.
 
@@ -34,6 +35,8 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
             expressed as a proportion of the dataset size (e.g., 0.2 for 20%).
             This determines how many augmented examples will be generated.
         augmentation_techniques (list): List of initialized augmentation objects to apply to the training data.
+        output_path (str): Intermediate path to save the results and model.
+        custom_model_name_suffix (str): Custom suffix for the model name to avoid overwriting.
     """
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -101,8 +104,14 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     )
     san_model_name = model_name.split(sep='/')[-1]
     use_fp16 = torch.cuda.is_available()
+    if custom_model_name_suffix:
+        final_folder_name = f'cls_fine_tuning_{san_model_name}_{percentage}pct_{custom_model_name_suffix}'
+    else:
+        final_folder_name = f'cls_fine_tuning_{san_model_name}_{percentage}pct_{custom_model_name_suffix}'
+    model_path = os.path.join('models', output_path, final_folder_name)
+    os.makedirs(model_path, exist_ok=True)
     train_args = TrainingArguments(
-        output_dir=os.path.join('models', 'part_3', 'a', f'cls_fine_tuning_{san_model_name}_{percentage}pct'),
+        output_dir=os.path.join('models', output_path, final_folder_name),
         eval_strategy="epoch",
         save_strategy="epoch",
         logging_strategy="steps",
@@ -137,7 +146,11 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     log_history = trainer.state.log_history
     epoch_logs = [log for log in log_history if 'epoch' in log]
     results_df = pl.DataFrame(epoch_logs)
-    results_path = os.path.join('results', 'part_3', 'a', f'cls_fine_tuning_results_{san_model_name}_{percentage}pct.parquet')
+    if custom_model_name_suffix:
+        parquet_name = f'cls_fine_tuning_results_{san_model_name}_{percentage}pct_{custom_model_name_suffix}.parquet'
+    else:
+        parquet_name = f'cls_fine_tuning_results_{san_model_name}_{percentage}pct.parquet'
+    results_path = os.path.join('results', output_path, parquet_name)
     os.makedirs(os.path.dirname(results_path), exist_ok=True)
     results_df.write_parquet(results_path)
     best_epoch = results_df.filter(pl.col('eval_loss') == results_df['eval_loss'].min())
@@ -148,7 +161,8 @@ def train_with_percentage(train_df, valid_df, percentage, model_name, max_length
     }
 
 def run_incremental_training(train_df, valid_df, model_name, max_length, num_labels, seed=42,
-                             sample_proportion=0.5, augmentation_rate: float=None, augmentation_techniques: list=None):
+                             sample_proportion=0.5, augmentation_rate: float=None, augmentation_techniques: list=None,
+                             output_path:str=os.path.join('part_3', 'a'), custom_model_name_suffix:str=None):
     """
     Run training with different percentages of the dataset (1%, 10%, 25%, 50%, 75%, 100%).
 
@@ -164,6 +178,8 @@ def run_incremental_training(train_df, valid_df, model_name, max_length, num_lab
             expressed as a proportion of the dataset size (e.g., 0.2 for 20%).
             This determines how many augmented examples will be generated.
         augmentation_techniques (list): List of initialized augmentation objects to apply to the training data.
+        output_path (str): Intermediate path to save the results and model.
+        custom_model_name_suffix (str): Custom suffix for the model name to avoid overwriting.
     """
     percentages = [1, 10, 25, 50, 75, 100]
     all_results = []
