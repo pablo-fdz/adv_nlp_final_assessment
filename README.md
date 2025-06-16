@@ -30,12 +30,6 @@ When the Swiss Federal Supreme Court approves a case, it means the appeal is suc
 
 ## 2. Main Findings
 
-pablo-fdz: Can you create a brief summary for the main findings and the results, considering all of the insights highlighted throughout the notebooks?
-
-GitHub Copilot: # Text Classification Task: Prediction of the Outcome of Swiss Federal Supreme Court cases
-
-## 2. Main Findings
-
 Our exploration of legal judgment prediction using the Swiss Federal Supreme Court dataset revealed several key insights:
 
 ### Dataset Challenges
