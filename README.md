@@ -61,11 +61,6 @@ Our exploration of legal judgment prediction using the Swiss Federal Supreme Cou
 - **Incremental training** showed initial improvement from 1% to 25% of training data, but performance gains plateaued afterward
 - **Class imbalance** remained challenging even with full dataset
 
-### Model Compression
-- **Teacher model** (full CamemBERT): Highest accuracy but largest size
-- **Distilled student model**: ~5% relative drop in accuracy with ~40% size reduction
-- **Quantized model**: ~8% relative drop in accuracy with ~75% size reduction
-
 ### LLM-based Approaches
 - **Zero-shot classification**: Good accuracy (87%) but only because of defaulting to majority class
 - **Synthetic data generation**: Generated balanced datasets but introduced artificial patterns that sometimes reduced performance
