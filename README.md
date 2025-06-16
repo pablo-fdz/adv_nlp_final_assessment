@@ -30,4 +30,50 @@ When the Swiss Federal Supreme Court approves a case, it means the appeal is suc
 
 ## 2. Main Findings
 
+pablo-fdz: Can you create a brief summary for the main findings and the results, considering all of the insights highlighted throughout the notebooks?
+
+GitHub Copilot: # Text Classification Task: Prediction of the Outcome of Swiss Federal Supreme Court cases
+
+## 2. Main Findings
+
+Our exploration of legal judgment prediction using the Swiss Federal Supreme Court dataset revealed several key insights:
+
+### Dataset Challenges
+- **Severe class imbalance**: With ~75% dismissed cases in the training set and ~85% in the test set, models naturally bias toward predicting dismissals.
+- **Domain complexity**: Legal text classification requires specialized domain knowledge and language understanding.
+- **Multilingual context**: The Swiss dataset's multiple languages (German, French, Italian) adds complexity, though we focused primarily on French documents.
+
+### Model Performance
+- **Domain-specific pre-training matters**: Models pre-trained on legal text (JuriBERT) consistently outperformed general language models on this specialized task.
+- **Underfitting vs. overfitting**: With limited labeled data, the primary challenge was underfitting rather than overfitting - even with only 32 labeled examples, data augmentation helped more than regularization.
+- **Zero-shot limitations**: Even advanced LLMs struggled with nuanced legal classification in zero-shot settings, defaulting to predicting the majority class.
+
+### Efficiency Techniques
+- **Data augmentation effectiveness**: Simple techniques like random word insertion and swap proved more effective than complex approaches like back-translation.
+- **Knowledge distillation viability**: Student models achieved comparable performance to their teachers with significantly reduced size and faster inference.
+- **Quantization trade-offs**: Converting model parameters to 8-bit integers substantially reduced model size with minimal performance impact.
+
 ## 3. Results
+
+### Baseline Performance
+- **Random classifier**: 63% accuracy (reflecting class distribution)
+- **Rule-based classifier**: 62% accuracy using frequency of legal terms by area
+
+### Limited Data Approaches (32 labeled examples)
+- **BERT with standard fine-tuning**: ~60% AUC
+- **JuriBERT with SetFit**: ~62% AUC (best performing approach with limited data)
+
+### Scaling with More Data
+- **Incremental training** showed initial improvement from 1% to 25% of training data, but performance gains plateaued afterward
+- **Class imbalance** remained challenging even with full dataset
+
+### Model Compression
+- **Teacher model** (full CamemBERT): Highest accuracy but largest size
+- **Distilled student model**: ~5% relative drop in accuracy with ~40% size reduction
+- **Quantized model**: ~8% relative drop in accuracy with ~75% size reduction
+
+### LLM-based Approaches
+- **Zero-shot classification**: Good accuracy (87%) but only because of defaulting to majority class
+- **Synthetic data generation**: Generated balanced datasets but introduced artificial patterns that sometimes reduced performance
+
+Overall, the most promising approach combined domain-specific models (JuriBERT) with contrastive learning techniques (SetFit) and mild data augmentation, addressing both the domain complexity and data scarcity challenges inherent in legal text classification.
