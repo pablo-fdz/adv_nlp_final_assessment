@@ -1,0 +1,28 @@
+# Core ML/NLP Frameworks
+torch
+transformers
+tensorflow
+datasets
+setfit
+
+# Data Handling & Manipulation
+pandas
+polars
+numpy
+pyarrow
+
+# Visualization
+matplotlib
+seaborn
+wordcloud
+
+# LLM & APIs
+groq
+python-dotenv
+
+# Utilities & Metrics
+scikit-learn
+tqdm
+nltk
+sacremoses
+nest-asyncio
